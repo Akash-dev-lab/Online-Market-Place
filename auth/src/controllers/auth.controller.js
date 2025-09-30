@@ -56,4 +56,55 @@ async function registerController(req, res) {
   }
 }
 
-module.exports = { registerController };
+async function loginController(req, res) {
+  try {
+    const { firstName, email, password } = req.body || {};
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required." });
+    }
+
+    const user = await userModel.findOne({ $or: [{email}, {firstName}] }).select("+password");
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials." });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ message: "Invalid credentials." });
+    }
+
+    const token = jwt.sign(
+      {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
+      process.env.JWT_SECRET_KEY,
+      { expiresIn: '1d' }
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      message: "Login successful.",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        addresses: user.addresses || []
+      }
+    });
+  } catch (error) {
+    console.error("Error in loginController:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+module.exports = { registerController, loginController };

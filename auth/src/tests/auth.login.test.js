@@ -28,7 +28,8 @@ describe('POST /api/auth/login', () => {
         expect(res.status).toBe(200);
         expect(res.body.user).toBeDefined();
         expect(res.body.user.email).toBe('jane@example.com');
-        // cookie should be set
+
+		
         const setCookie = res.headers[ 'set-cookie' ];
         expect(setCookie).toBeDefined();
         expect(setCookie.join(';')).toMatch(/token=/);

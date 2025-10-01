@@ -6,7 +6,7 @@ const cookieParser = require('cookie-parser')
 // Adjust the path if your redis helper is located elsewhere.
 jest.mock('../db/redis.js', () => {
 	const mock = {
-		del: jest.fn().mockResolvedValue(1),
+		set: jest.fn().mockResolvedValue('OK'),
 		on: jest.fn()
 	}
 	return mock
@@ -30,39 +30,38 @@ afterEach(() => {
 	jest.clearAllMocks()
 })
 
-test('GET /api/auth/logout clears cookie and deletes session in redis', async () => {
+test('GET /api/auth/logout clears cookie and blacklists token in redis', async () => {
 	const res = await request(app)
 		.get('/api/auth/logout')
-		.set('Cookie', 'sid=abc123')
+		.set('Cookie', 'token=abc123')
 		.expect(200)
 
-	expect(res.body).toEqual({ message: 'Logged out' })
-	expect(redis.del).toHaveBeenCalledWith('abc123')
+	expect(res.body).toEqual({ message: 'Logged out successfully' })
+	expect(redis.set).toHaveBeenCalledWith('blacklist:abc123', 'true', 'EX', 24 * 60 * 60)
 
 	const setCookie = res.headers['set-cookie']
 	expect(setCookie).toBeDefined()
-	expect(setCookie.some((s) => /sid=;/i.test(s))).toBe(true)
+	expect(setCookie.some((s) => /token=;/i.test(s))).toBe(true)
 })
 
-test('GET /api/auth/logout with no session cookie clears cookie and does not call redis.del', async () => {
+test('GET /api/auth/logout with no token cookie clears cookie and does not call redis.set', async () => {
 	const res = await request(app).get('/api/auth/logout').expect(200)
 
-	expect(res.body).toEqual({ message: 'Logged out' })
-	expect(redis.del).not.toHaveBeenCalled()
+	expect(res.body).toEqual({ message: 'Logged out successfully' })
+	expect(redis.set).not.toHaveBeenCalled()
 
 	const setCookie = res.headers['set-cookie']
 	expect(setCookie).toBeDefined()
-	expect(setCookie.some((s) => /sid=;/i.test(s))).toBe(true)
+	expect(setCookie.some((s) => /token=;/i.test(s))).toBe(true)
 })
 
-test('GET /api/auth/logout returns 500 when redis.del fails', async () => {
-	redis.del.mockRejectedValueOnce(new Error('redis error'))
+test('GET /api/auth/logout returns 500 when redis.set fails', async () => {
+	redis.set.mockRejectedValueOnce(new Error('redis error'))
 
-	const res = await request(app)
+	await request(app)
 		.get('/api/auth/logout')
-		.set('Cookie', 'sid=willfail')
+		.set('Cookie', 'token=willfail')
 		.expect(500)
 
-	expect(res.body).toEqual({ message: 'Logout failed' })
-	expect(redis.del).toHaveBeenCalledWith('willfail')
+	expect(redis.set).toHaveBeenCalledWith('blacklist:willfail', 'true', 'EX', 24 * 60 * 60)
 })

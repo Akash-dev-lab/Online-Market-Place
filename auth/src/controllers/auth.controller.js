@@ -113,30 +113,16 @@ async function getCurrentUser(req, res) {
 }
 
 async function logoutUser(req, res) {
-  // Read session id from cookie named 'sid'
-  const sid = req.cookies && req.cookies.sid;
+  const token = req.cookies.token;
 
-  if (sid) {
-    try {
-      // delete session key in redis
-      await redis.del(sid);
-      // clear the cookie named 'sid'
-      res.clearCookie('sid', {
-        httpOnly: true,
-        secure: true
-      });
-      return res.status(200).json({ message: 'Logged out' });
-    } catch (error) {
-      return res.status(500).json({ message: 'Logout failed' });
-    }
-  } else {
-    // no sid present: still clear cookie and return success
-    res.clearCookie('sid', {
-      httpOnly: true,
-      secure: true
-    });
-    return res.status(200).json({ message: 'Logged out' });
-  }
+  if(token) await redis.set(`blacklist:${token}`, 'true', 'EX', 24 * 60 * 60);
+
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: true
+  })
+
+  return res.status(200).json({ message: 'Logged out successfully' });
 }
 
 module.exports = {

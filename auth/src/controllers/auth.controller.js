@@ -177,6 +177,37 @@ async function addUserAddresses(req, res) {
   })
 }
 
+async function deleteUserAddresses(req, res) {
+  try {
+    const userId = req.user?.id;
+    const { addressId } = req.params;
+    const mongoose = require("mongoose");
+
+    if (!mongoose.Types.ObjectId.isValid(addressId)) {
+      return res.status(400).json({ message: "Invalid address ID" });
+    }
+
+    const user = await userModel.findByIdAndUpdate(
+      userId,
+      { $pull: { addresses: { _id: addressId } } },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json({
+      message: "Address deleted successfully",
+      addresses: user.addresses
+    });
+
+  } catch (error) {
+    console.error("Error deleting address:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
 module.exports = {
   registerController,
   loginController,
@@ -184,4 +215,5 @@ module.exports = {
   logoutUser,
   getUserAddresses,
   addUserAddresses,
+  deleteUserAddresses
 };

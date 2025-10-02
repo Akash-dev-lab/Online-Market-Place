@@ -28,8 +28,8 @@ const registerUserValidations = [
         .withMessage("Last name is required"),
     body("role")
         .optional()
-        .isIn([ 'user', 'seller' ])
-        .withMessage("Role must be either 'user' or 'seller'"),
+        .isIn([ 'user', 'seller', 'admin' ])
+        .withMessage("Role must be either 'user', 'seller' or 'admin'"),
     respondWithValidationErrors
 ]
 

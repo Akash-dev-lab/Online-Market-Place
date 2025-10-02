@@ -5,7 +5,7 @@ const redis = require("../db/redis");
 
 async function registerController(req, res) {
   try {
-    const { firstName, lastName, email, addresses, password } = req.body;
+    const { firstName, lastName, email, role, password } = req.body;
 
     const userExist = await userModel.findOne({ email });
 
@@ -20,7 +20,7 @@ async function registerController(req, res) {
         lastName,
       },
       email,
-      addresses: addresses || [],
+      role,
       password: await bcrypt.hash(password, 10),
     });
 

@@ -54,7 +54,6 @@ async function getProducts(req, res) {
       products: products
    });
   } catch (error) {
-    console.error(error);
     return res.status(500).json({ message: 'Server error' });
   }
 }
@@ -69,4 +68,63 @@ async function getProductsById(req, res) {
   return res.status(200).json({ product: product });
 }
 
-module.exports = { createProduct, getProducts, getProductsById };
+async function updateProduct(req, res) {
+  try {
+    const { id } = req.params;
+    const { title, description, priceAmount, priceCurrency } = req.body;
+    const userId = req.user.id;
+
+    const product = await Product.findById(id);
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // 2. Insure user is the owner
+    const sellerId =
+      typeof product.seller === 'object' && product.seller._id
+        ? product.seller._id.toString()
+        : product.seller.toString();
+
+    if (sellerId !== userId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to update this product' });
+    }
+
+
+     if (title) product.title = title;
+    if (description) product.description = description;
+
+    // ✅ Update nested price
+    if (priceAmount || priceCurrency) {
+      if (!product.price) product.price = {};
+      if (priceAmount) product.price.amount = priceAmount;
+      if (priceCurrency) product.price.currency = priceCurrency;
+    }
+
+    // ✅ Update Images (if new images are uploaded)
+    if (req.files && req.files.length > 0) {
+      // Upload new images just like createProduct
+      const uploadedImages = await Promise.all(
+        req.files.map((file) => uploadImage(file))
+      );
+
+      product.Images = uploadedImages.map((img) => ({
+        url: img.url,
+        thumbnail: img.thumbnail,
+        id: img.fileId,
+      }));
+    }
+
+
+    await product.save();
+
+    return res.status(200).json({
+      message: 'Product updated successfully',
+      product,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Server error' });
+  }
+}
+
+module.exports = { createProduct, getProducts, getProductsById, updateProduct };

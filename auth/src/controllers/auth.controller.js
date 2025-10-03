@@ -52,10 +52,7 @@ async function registerController(req, res) {
       },
     });
   } catch (error) {
-    console.error("Error in registerController:", error);
-    return res.status(500).json({
-      message: "Internal Server Error",
-    });
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 }
 
@@ -109,7 +106,6 @@ async function loginController(req, res) {
       },
     });
   } catch (error) {
-    console.error("Error in loginController:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 }
@@ -146,7 +142,6 @@ async function getUserAddresses(req, res) {
       addresses: user.addresses || [],
     });
   } catch (error) {
-    console.error("Error in getUserAddresses:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 }
@@ -203,7 +198,6 @@ async function deleteUserAddresses(req, res) {
     });
 
   } catch (error) {
-    console.error("Error deleting address:", error);
     return res.status(500).json({ message: "Server error" });
   }
 }

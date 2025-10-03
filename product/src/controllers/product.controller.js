@@ -135,7 +135,6 @@ async function deleteProduct(req, res) {
     const product = await Product.findById(id);
     if (!product) return res.status(404).json({ message: 'Product not found' });
 
-    // Ensure comparison is string-to-string
     const sellerId = product.seller?._id?.toString() || product.seller.toString();
 
     if (sellerId !== userId.toString()) {
@@ -150,5 +149,24 @@ async function deleteProduct(req, res) {
   }
 }
 
+async function getSellerProducts(req, res) {
+  try {
+    const sellerId = req.user.id;
+    const skip = parseInt(req.query.skip) || 0;
+    const limit = parseInt(req.query.limit) || 10;
 
-module.exports = { createProduct, getProducts, getProductsById, updateProduct, deleteProduct };
+    const productsQuery = Product.find({ seller: sellerId })
+      .skip(skip)
+      .limit(limit);
+
+    const products = await productsQuery.exec();
+
+    return res.status(200).json({ products });
+  } catch (error) {
+    return res.status(500).json({ message: 'Server error' });
+  }
+}
+
+
+
+module.exports = { createProduct, getProducts, getProductsById, updateProduct, deleteProduct, getSellerProducts };

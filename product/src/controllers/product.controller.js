@@ -32,4 +32,41 @@ async function createProduct(req, res) {
   }
 }
 
-module.exports = { createProduct };
+async function getProducts(req, res) {
+   try {
+    let { q, minPrice, maxPrice, skip = 0, limit = 20, } = req.query;
+
+    const filter = {};
+
+    if (q) {
+      filter.$text = { $search: q };
+    }
+
+    if (minPrice || maxPrice) {
+      filter['price.amount'] = {};
+      if (minPrice) filter['price.amount'].$gte = Number(minPrice);
+      if (maxPrice) filter['price.amount'].$lte = Number(maxPrice);
+    }
+
+    const products = await Product.find(filter).skip(Number(skip)).limit(Math.min(Number(limit), 20));
+
+    return res.status(200).json({
+      products: products
+   });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+}
+
+async function getProductsById(req, res) {
+  const { id } = req.params;
+
+  const product = await Product.findById(id)
+
+  if (!product) return res.status(404).json({ message: "Product not found" });
+
+  return res.status(200).json({ product: product });
+}
+
+module.exports = { createProduct, getProducts, getProductsById };

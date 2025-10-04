@@ -3,4 +3,9 @@
 
 echo "✅ Running tests before commit..."
 
-npm test || { echo "Tests failed, aborting commit"; exit 1; }
+cross-env npm run test
+RESULT=$?
+if [ $RESULT -ne 0 ]; then
+  echo "Tests failed, aborting commit"
+  exit 1
+fi

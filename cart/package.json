@@ -12,7 +12,6 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
-
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
@@ -26,6 +25,7 @@
     "supertest": "^7.1.4"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "husky": "^9.1.7"
   }
 }

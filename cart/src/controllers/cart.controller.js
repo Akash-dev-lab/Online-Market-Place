@@ -31,4 +31,22 @@ for (let { field, condition, message } of validations) {
     res.status(200).json({message: 'Item added to cart', cart});
 }
 
-module.exports = { addItemToCart };
+async function getCart(req, res) {
+    const user = req.user.id;
+
+    let cart = await cartModel.findOne({user: user});
+
+    if (!cart) {
+        cart = new cartModel({user: user, items: []});
+        await cart.save();
+    }
+
+    res.status(200).json({
+        cart,
+        totals: {
+            itemCount: cart.items.reduce((sum, item) => sum + item.quantity,)
+        }
+    });
+}
+
+module.exports = { addItemToCart, getCart };

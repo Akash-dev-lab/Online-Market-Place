@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const createAuthMiddleware = require('../middlewares/auth.middleware');
 const {validateAddItemToCart} = require('../middlewares/valid.middleware')
-const { addItemToCart } = require('../controllers/cart.controller');
+const { addItemToCart, getCart } = require('../controllers/cart.controller');
 
 
-// router.get('/')
+router.get('/', createAuthMiddleware(['user']), getCart)
 router.post('/items', validateAddItemToCart, createAuthMiddleware(['user']), addItemToCart)
 
 

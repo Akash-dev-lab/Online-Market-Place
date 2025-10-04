@@ -71,4 +71,43 @@ async function updateCartItem(req, res) {
     res.status(200).json({ message: 'Cart item updated', cart });
 }
 
-module.exports = { addItemToCart, getCart, updateCartItem };
+async function deleteCartItem(req, res) {
+  const { productId } = req.params;
+  const user = req.user.id;
+
+  const cart = await cartModel.findOne({ user: user });
+  if (!cart) {
+    return res.status(404).json({ message: "Cart not found" });
+  }
+
+  const itemIndex = cart.items.findIndex(
+    (item) => item.productId.toString() === productId
+  );
+
+  if (itemIndex < 0) {
+    return res.status(404).json({ message: "Item not found in cart" });
+  }
+
+  cart.items.splice(itemIndex, 1); // remove item
+  await cart.save();
+
+  res.status(200).json({ message: "Item removed from cart", cart });
+}
+
+
+async function clearCart(req, res) {
+  const user = req.user.id;
+
+  const cart = await cartModel.findOne({ user: user });
+  if (!cart) {
+    return res.status(404).json({ message: "Cart not found" });
+  }
+
+  cart.items = []; // clear all items
+  await cart.save();
+
+  res.status(200).json({ message: "Cart cleared successfully", cart });
+}
+
+
+module.exports = { addItemToCart, getCart, updateCartItem, clearCart, deleteCartItem };

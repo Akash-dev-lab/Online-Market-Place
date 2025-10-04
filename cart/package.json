@@ -6,12 +6,13 @@
   "scripts": {
     "test": "jest --runInBand",
     "dev": "nodemon server.js",
-    "prepare": "husky"
+    "prepare": "husky install"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",

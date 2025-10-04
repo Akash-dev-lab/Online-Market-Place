@@ -3,4 +3,4 @@
 
 echo "✅ Running tests before commit..."
 
-npm test
+npm test || { echo "Tests failed, aborting commit"; exit 1; }

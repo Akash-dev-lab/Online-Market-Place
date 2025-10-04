@@ -1,4 +1,5 @@
 const { body, validationResult } = require('express-validator');
+const mongoose = require('mongoose');
 
 const respondWithValidationErrors = (req, res, next) => {
     const errors = validationResult(req);
@@ -13,8 +14,13 @@ const validateAddItemToCart = [
     body("productId")
         .isString()
         .withMessage("Product ID must be a string")
-        .custom((value) => mongoose.Types.ObjectId.isValid(value))
-        .withMessage("Invalid Product ID format"),
+        .withMessage("Invalid Product ID format")
+         .custom(value => {
+            if (!mongoose.Types.ObjectId.isValid(value.trim())) {
+                throw new Error("Invalid Product ID format"); // must throw
+            }
+            return true;
+        }),
     body("qty")
         .isInt({ gt: 0 })
         .withMessage("Quantity must be a positive integer"),

@@ -49,4 +49,26 @@ async function getCart(req, res) {
     });
 }
 
-module.exports = { addItemToCart, getCart };
+async function updateCartItem(req, res) {
+    const { productId } = req.params;
+    const { qty } = req.body;
+    const user = req.user.id;
+
+    const cart = await cartModel.findOne({ user: user });
+    if (!cart) {
+        return res.status(404).json({ message: 'Cart not found' });
+    }
+
+    const itemIndex = cart.items.findIndex(item => item.product.toString() === productId);
+
+    if (itemIndex < 0) {
+        return res.status(404).json({ message: 'Item not found in cart' });
+    }
+
+    cart.items[itemIndex].quantity = qty;
+    await cart.save();
+
+    res.status(200).json({ message: 'Cart item updated', cart });
+}
+
+module.exports = { addItemToCart, getCart, updateCartItem };

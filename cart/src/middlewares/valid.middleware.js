@@ -1,6 +1,5 @@
-const { body, validationResult } = require('express-validator');
+const { body, validationResult, param } = require('express-validator');
 const mongoose = require('mongoose');
-const { param } = require('../routes/cart.routes');
 
 const respondWithValidationErrors = (req, res, next) => {
     const errors = validationResult(req);

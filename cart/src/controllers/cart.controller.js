@@ -59,7 +59,7 @@ async function updateCartItem(req, res) {
         return res.status(404).json({ message: 'Cart not found' });
     }
 
-    const itemIndex = cart.items.findIndex(item => item.product.toString() === productId);
+    const itemIndex = cart.items.findIndex(item => item.productId.toString() == productId);
 
     if (itemIndex < 0) {
         return res.status(404).json({ message: 'Item not found in cart' });

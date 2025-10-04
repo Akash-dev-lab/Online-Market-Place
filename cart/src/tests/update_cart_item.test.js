@@ -31,7 +31,7 @@ describe("updateCartItem controller", () => {
 
   it("should return 404 if item not found in cart", async () => {
     const mockCart = {
-      items: [{ product: { toString: () => "anotherProd" }, quantity: 2 }],
+      items: [{ productId: { toString: () => "anotherProd" }, quantity: 2 }],
       save: jest.fn(),
     };
     cartModel.findOne.mockResolvedValue(mockCart);
@@ -46,7 +46,7 @@ describe("updateCartItem controller", () => {
 
   it("should update item quantity and return updated cart", async () => {
     const mockCart = {
-      items: [{ product: { toString: () => "prod123" }, quantity: 2 }],
+      items: [{ productId: { toString: () => "prod123" }, quantity: 2 }],
       save: jest.fn(),
     };
     cartModel.findOne.mockResolvedValue(mockCart);

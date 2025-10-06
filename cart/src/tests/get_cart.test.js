@@ -29,9 +29,11 @@ describe('getCart controller', () => {
         expect(cartModel.findOne).toHaveBeenCalledWith({ user: req.user.id });
         expect(saveMock).toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(200);
+
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
             cart: expect.objectContaining({ user: req.user.id, items: [] }),
-            totals: { itemCount: 0 }
+            totals: expect.objectContaining({ itemCount: 0, totalQuantity: 0 }),
+            message: 'Items added succesfully'
         }));
     });
 
@@ -43,9 +45,11 @@ describe('getCart controller', () => {
 
         expect(cartModel.findOne).toHaveBeenCalledWith({ user: req.user.id });
         expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith({
+
+        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
             cart: mockCart,
-            totals: { itemCount: 5 }
-        });
+            totals: expect.objectContaining({ itemCount: mockCart.items.length, totalQuantity: 5 }),
+            message: 'Items added succesfully'
+        }));
     });
 });

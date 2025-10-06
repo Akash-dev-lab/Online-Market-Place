@@ -42,9 +42,11 @@ async function getCart(req, res) {
     }
 
     res.status(200).json({
+        message: "Items added succesfully",
         cart,
         totals: {
-            itemCount: cart.items.reduce((sum, item) => sum + item.quantity, 0)
+            itemCount: cart.items.length,
+             totalQuantity: cart.items.reduce((sum, item) => sum + item.quantity, 0)
         }
     });
 }

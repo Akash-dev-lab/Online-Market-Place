@@ -91,6 +91,37 @@ async function createOrder(req, res) {
   }
 }
 
+async function getMyOrders(req, res) {
+ try {
+    const userId = req.user.id; // ✅ use the correct field
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const totalOrders = await orderModel.countDocuments({ user: userId });
+
+    const orders = await orderModel
+      .find({ user: userId }) // ✅ query by "user" field
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.status(200).json({
+      success: true,
+      meta: {
+        total: totalOrders,
+        page,
+        limit,
+      },
+      data: orders,
+    });
+  } catch (err) {
+    console.error("❌ Get orders failed:", err.message);
+    res.status(500).json({ message: "Internal server error", error: err.message });
+  }
+}
+
 module.exports = {
   createOrder,
+  getMyOrders
 };

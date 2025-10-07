@@ -1,5 +1,6 @@
 const orderModel = require('../models/order.model')
 const axios = require("axios");
+const mongoose = require('mongoose')
 
 async function createOrder(req, res) {
     const user = req.user
@@ -121,7 +122,66 @@ async function getMyOrders(req, res) {
   }
 }
 
+async function getOrderById(req, res) {
+   try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    // Invalid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order ID format.",
+      });
+    }
+
+    const order = await orderModel.findById(id);
+
+    if (!order) {
+      return res.status(400).json({
+        success: false,
+        message: "Order not found.",
+      });
+    }
+
+    if (order.user.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden. You cannot access another user's order.",
+      });
+    }
+
+    // Simulated payment summary & timeline
+    const paymentSummary = {
+      totalAmount: order.totalPrice || 0,
+      paymentStatus: order.paymentStatus || "Pending",
+      method: order.paymentMethod || "COD",
+    };
+
+    const timeline = [
+      { status: "Order Placed", date: order.createdAt },
+      { status: order.status || "Processing", date: new Date() },
+    ];
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...order.toObject(),
+        paymentSummary,
+        timeline,
+      },
+    });
+  } catch (error) {
+    console.error("getOrderById Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error.",
+    });
+  }
+}
+
 module.exports = {
   createOrder,
-  getMyOrders
+  getMyOrders,
+  getOrderById
 };

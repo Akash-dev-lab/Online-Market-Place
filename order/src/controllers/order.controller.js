@@ -180,8 +180,136 @@ async function getOrderById(req, res) {
   }
 }
 
+async function cancelOrderController(req, res) {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    // 1️⃣ Invalid ObjectId check
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order ID format.",
+      });
+    }
+
+    // 2️⃣ Fetch order
+    const order = await orderModel.findById(id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found.",
+      });
+    }
+
+    // 3️⃣ Ownership check
+    if (order.user.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden. You cannot cancel another user's order.",
+      });
+    }
+
+    // 4️⃣ Status check - only PENDING or PAID allowed
+    if (!["PENDING", "PAID"].includes(order.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot cancel order with status '${order.status}'.`,
+      });
+    }
+
+    // 5️⃣ Update status to CANCELLED
+    order.status = "CANCELLED";
+    await order.save();
+
+    // 6️⃣ Optional: return updated order with simple timeline/payment info
+    const paymentSummary = {
+      totalAmount: order.totalPrice || 0,
+      paymentStatus: order.paymentStatus || "Pending",
+      method: order.paymentMethod || "COD",
+    };
+
+    const timeline = [
+      { status: "Order Placed", date: order.createdAt },
+      { status: "Cancelled", date: new Date() },
+    ];
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...order.toObject(),
+        paymentSummary,
+        timeline,
+      },
+    });
+  } catch (error) {
+    console.error("cancelOrderController Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error.",
+    });
+  }
+}
+
+async function updateOrderAddress(req, res) {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const { shippingAddress } = req.body;
+
+    // 1️⃣ Invalid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order ID format.",
+      });
+    }
+
+    const order = await orderModel.findById(id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found.",
+      });
+    }
+
+    // 2️⃣ Forbidden if user tries to update another user's order
+    if (order.user.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden. You cannot update another user's order.",
+      });
+    }
+
+    // 3️⃣ Cannot update address after payment is captured
+    if (order.paymentStatus && order.paymentStatus.toUpperCase() === "PAID") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot update address after payment is captured.",
+      });
+    }
+
+    // 4️⃣ Update the shipping address
+    order.shippingAddress = shippingAddress;
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      data: order,
+    });
+  } catch (error) {
+    console.error("updateOrderAddress Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error.",
+    });
+  }
+}
+
 module.exports = {
   createOrder,
   getMyOrders,
-  getOrderById
+  getOrderById,
+  cancelOrderController,
+  updateOrderAddress
 };

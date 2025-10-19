@@ -1,28 +1,25 @@
-const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+// src/tests/setup.js — pure isolation test setup
 
-let mongo;
-
-beforeAll(async () => {
-    // Start in-memory MongoDB
-    mongo = await MongoMemoryServer.create();
-    const uri = mongo.getUri();
-
-    process.env.MONGO_URI = uri; // ensure app's db connector uses this
-    process.env.JWT_SECRET = "test_jwt_secret"; // set a test JWT secret
-
-    await mongoose.connect(uri);
+// Keep mongoose schema functionality but block real connections
+jest.mock('mongoose', () => {
+  const actualMongoose = jest.requireActual('mongoose');
+  return {
+    ...actualMongoose,
+    connect: jest.fn(),
+    connection: { close: jest.fn() },
+    Types: {
+      ObjectId: actualMongoose.Types.ObjectId,
+      isValid: jest.fn().mockReturnValue(true),
+    },
+  };
 });
 
-afterEach(async () => {
-    // Cleanup all collections between tests
-    const collections = await mongoose.connection.db.collections();
-    for (let collection of collections) {
-        await collection.deleteMany({});
-    }
-});
+// Fake environment variables
+process.env.JWT_SECRET = "test_secret";
+process.env.IMAGEKIT_PUBLIC_KEY = "fake_public";
+process.env.IMAGEKIT_PRIVATE_KEY = "fake_private";
+process.env.IMAGEKIT_URL_ENDPOINT = "https://fake.endpoint";
 
-afterAll(async () => {
-    await mongoose.connection.close();
-    if (mongo) await mongo.stop();
+afterEach(() => {
+  jest.clearAllMocks();
 });

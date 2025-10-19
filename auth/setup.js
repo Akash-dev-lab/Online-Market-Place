@@ -1,28 +1,31 @@
-const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+// src/tests/setup.js
 
-let mongo;
-
-beforeAll(async () => {
-    // Start in-memory MongoDB
-    mongo = await MongoMemoryServer.create();
-    const uri = mongo.getUri();
-
-    process.env.MONGO_URI = uri; // ensure app's db connector uses this
-    process.env.JWT_SECRET = "test_jwt_secret"; // set a test JWT secret
-
-    await mongoose.connect(uri);
+// Mock mongoose to prevent real DB connections:
+jest.mock("mongoose", () => {
+  const actual = jest.requireActual("mongoose");
+  return {
+    ...actual,
+    connect: jest.fn(() => Promise.resolve()),
+    disconnect: jest.fn(() => Promise.resolve()),
+    connection: {
+      close: jest.fn(() => Promise.resolve()),
+      on: jest.fn(),
+      db: { collections: jest.fn().mockResolvedValue([]) },
+    },
+  };
 });
 
-afterEach(async () => {
-    // Cleanup all collections between tests
-    const collections = await mongoose.connection.db.collections();
-    for (let collection of collections) {
-        await collection.deleteMany({});
-    }
+process.env.JWT_SECRET_KEY = "test_secret";
+process.env.JWT_SECRET = "test_secret";
+process.env.REDIS_URL = "redis://mock";
+
+afterEach(() => {
+  jest.clearAllMocks();
 });
 
+// ✅ Ensures no open handles (Jest clean exit)
 afterAll(async () => {
-    await mongoose.connection.close();
-    if (mongo) await mongo.stop();
+  const mongoose = require("mongoose");
+  if (mongoose.connection.close) await mongoose.connection.close();
+  jest.restoreAllMocks();
 });

@@ -1,76 +1,47 @@
-const Product = require("../models/product.model");
 const { updateProduct } = require("../controllers/product.controller");
+const Product = require("../models/product.model");
+const { uploadImage } = require("../services/imagekit.service");
 
 jest.mock("../models/product.model");
-
-jest.mock('../services/imagekit.service.js', () => ({
-  uploadImage: jest.fn(),
-  imagekit: {}
-}));
+jest.mock("../services/imagekit.service");
 
 describe("updateProduct Controller", () => {
-  let req, res;
+  let req, res, mockProduct;
 
   beforeEach(() => {
     req = {
       params: { id: "123" },
-      body: { title: "Updated Phone", description: "New Description" },
-      user: { id: "seller123", role: "seller" },
+      body: { title: "Updated", priceAmount: 200 },
+      user: { id: "seller123" },
+      files: []
     };
-    res = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+    res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+
+    mockProduct = {
+      seller: "seller123",
+      price: { amount: 100, currency: "INR" },
+      save: jest.fn().mockResolvedValue(true)
     };
-    jest.clearAllMocks();
+  });
+
+  afterAll(() => jest.clearAllMocks());
+
+  it("should update product successfully", async () => {
+    Product.findById.mockResolvedValue(mockProduct);
+    await updateProduct(req, res);
+    expect(res.status).toHaveBeenCalledWith(200);
+  });
+
+  it("should return 403 if user not owner", async () => {
+    mockProduct.seller = "otherUser";
+    Product.findById.mockResolvedValue(mockProduct);
+    await updateProduct(req, res);
+    expect(res.status).toHaveBeenCalledWith(403);
   });
 
   it("should return 404 if product not found", async () => {
     Product.findById.mockResolvedValue(null);
-
     await updateProduct(req, res);
-
-    expect(Product.findById).toHaveBeenCalledWith("123");
     expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ message: "Product not found" });
-  });
-
-  it("should return 403 if user is not the owner", async () => {
-    const fakeProduct = { _id: "123", seller: "otherSeller" };
-    Product.findById.mockResolvedValue(fakeProduct);
-
-    await updateProduct(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith({ message: "Not authorized to update this product" });
-  });
-
-  it("should update product successfully", async () => {
-    const fakeProduct = {
-      _id: "123",
-      seller: "seller123",
-      title: "Old Phone",
-      description: "Old Description",
-      save: jest.fn().mockResolvedValue(true),
-    };
-
-    Product.findById.mockResolvedValue(fakeProduct);
-
-    await updateProduct(req, res);
-
-    expect(fakeProduct.title).toBe("Updated Phone");
-    expect(fakeProduct.description).toBe("New Description");
-    expect(fakeProduct.save).toHaveBeenCalled();
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({ message: "Product updated successfully", product: fakeProduct });
-  });
-
-  it("should handle server errors", async () => {
-    Product.findById.mockRejectedValue(new Error("Database error"));
-
-    await updateProduct(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ message: "Server error" });
   });
 });

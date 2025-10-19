@@ -3,9 +3,9 @@ const { uploadImage } = require("../services/imagekit.service");
 
 async function createProduct(req, res) {
   try {
-    const { title, description, priceAmount, priceCurrency = "INR" } = req.body;
+    const { title, description, priceAmount, priceCurrency = "INR", stock } = req.body;
 
-    if (!title || !priceAmount) return res.status(400).json({ message: "Title, priceAmount, are required" });
+    if (!title || !priceAmount || !stock) return res.status(400).json({ message: "Title, priceAmount, stock are required" });
 
     if (!req.files || req.files.length === 0) {
     return res.status(400).json({ message: 'At least one image is required' });
@@ -22,12 +22,13 @@ async function createProduct(req, res) {
       price,
       seller,
       Images: images,
+      stock: stock
     });
     return res
       .status(201)
       .json({ message: "Product created successfully", product });
   } catch (error) {
-    console.error(error);
+    // console.error(error);
     return res.status(500).json({ message: "Server error" });
   }
 }

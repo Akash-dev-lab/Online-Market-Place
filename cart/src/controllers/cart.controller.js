@@ -1,4 +1,5 @@
 const cartModel = require('../models/cart.model');
+const axios = require('axios')
 
 async function addItemToCart(req, res) {
     const {productId, qty} = req.body;
@@ -15,6 +16,17 @@ for (let { field, condition, message } of validations) {
         return res.status(400).json({ message });
     }
 }
+
+   // ✅ Product existence verification
+    const productURL = `http://localhost:3001/api/products/${productId}`;
+    const productResponse = await axios.get(productURL).catch(() => null);
+
+    if (!productResponse || productResponse.status !== 200) {
+      return res.status(404).json({ message: 'Product not found in Product Service' });
+    }
+
+    const product = productResponse.data;
+
     let cart = await cartModel.findOne({user: userId});
     if (!cart) {
         cart = new cartModel({user: userId, items: []});
@@ -24,7 +36,7 @@ for (let { field, condition, message } of validations) {
     if (existingItemIndex >= 0) {
         cart.items[existingItemIndex].quantity += qty;
     } else {
-        cart.items.push({productId: productId, quantity: qty});
+        cart.items.push({ title: product.product.title, price: product.product.price, images: product.product.Images, productId: productId, quantity: qty});
     }
 
     await cart.save();
@@ -35,14 +47,9 @@ async function getCart(req, res) {
     const user = req.user.id;
 
     let cart = await cartModel.findOne({user: user});
-
-    if (!cart) {
-        cart = new cartModel({user: user, items: []});
-        await cart.save();
-    }
+    if (!cart) return res.status(404).json({ message: 'Cart empty' });
 
     res.status(200).json({
-        message: "Items added succesfully",
         cart,
         totals: {
             itemCount: cart.items.length,

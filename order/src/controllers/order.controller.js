@@ -117,7 +117,7 @@ async function getMyOrders(req, res) {
       data: orders,
     });
   } catch (err) {
-    console.error("❌ Get orders failed:", err.message);
+    // console.error("❌ Get orders failed:", err.message);
     res.status(500).json({ message: "Internal server error", error: err.message });
   }
 }
@@ -172,7 +172,7 @@ async function getOrderById(req, res) {
       },
     });
   } catch (error) {
-    console.error("getOrderById Error:", error);
+    // console.error("getOrderById Error:", error);
     return res.status(500).json({
       success: false,
       message: "Server error.",
@@ -243,7 +243,7 @@ async function cancelOrderController(req, res) {
       },
     });
   } catch (error) {
-    console.error("cancelOrderController Error:", error);
+    // console.error("cancelOrderController Error:", error);
     return res.status(500).json({
       success: false,
       message: "Server error.",
@@ -298,7 +298,7 @@ async function updateOrderAddress(req, res) {
       data: order,
     });
   } catch (error) {
-    console.error("updateOrderAddress Error:", error);
+    // console.error("updateOrderAddress Error:", error);
     return res.status(500).json({
       success: false,
       message: "Server error.",

@@ -1,3 +1,4 @@
+const { publishToQueue } = require("../broker/broker");
 const Product = require("../models/product.model");
 const { uploadImage } = require("../services/imagekit.service");
 
@@ -24,6 +25,16 @@ async function createProduct(req, res) {
       Images: images,
       stock: stock
     });
+
+    await publishToQueue("PRODUCT_SELLER_DASHBOARD.PRODUCT_CREATED", product)
+
+    await publishToQueue("PRODUCT_NOTIFICATION.PRODUCT_CREATED", {
+          email: req.user.email,
+          productId: product._id,
+          sellerId: seller,
+          fullName: req.user.username.firstName + " " + req.user.username.lastName
+      });
+
     return res
       .status(201)
       .json({ message: "Product created successfully", product });

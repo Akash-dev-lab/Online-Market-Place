@@ -12,6 +12,8 @@ function createAuthMiddleware(roles = ["user"]) {
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY || "testsecret");
 
+            console.log("Decoded token in Order Service:", decoded);
+
             if (!roles.includes(decoded.role)) {
                 return res.status(403).json({ message: "Forbidden: Insufficient rights" });
             }

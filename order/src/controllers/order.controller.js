@@ -1,94 +1,163 @@
 const orderModel = require('../models/order.model')
 const axios = require("axios");
 const mongoose = require('mongoose')
+const {publishToQueue} = require("../broker/broker")
 
 async function createOrder(req, res) {
-    const user = req.user
-    const token = req.cookies?.token || req.headers?.authorization?.split(" ")[1];
+    const user = req.user;
+    const authHeader = req.headers?.authorization;
+    const token = req.cookies?.token || (authHeader ? authHeader.split(" ")[1] : undefined);
+
+    if (!user || !user.id) return res.status(401).json({ message: "Unauthorized: user missing" });
+    if (!token) return res.status(401).json({ message: "Unauthorized: token missing" });
 
   try {
-    const cartResponse = await axios.get(`http://localhost:3002/api/cart/`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const product = await Promise.all(
-      cartResponse.data.cart.items.map(async (item) => {
-        const res = await axios.get(
-          `http://localhost:3001/api/products`,
-          {
+    console.log("➡️ hitting cart service (primary)...");
+    let cartResponse;
+    try {
+      cartResponse = await axios.get(`http://localhost:3002/api/cart/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (err) {
+      console.warn("cart primary fetch failed:", err.response?.status, err.response?.data ?? err.message);
+      // try fallback by user id
+      try {
+        console.log("➡️ hitting cart service (fallback by user id)...");
+        cartResponse = await axios.get(`http://localhost:3002/api/cart/${user.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (err2) {
+        console.warn("cart fallback by-id failed:", err2.response?.status, err2.response?.data ?? err2.message);
+        // try query param fallback
+        try {
+          console.log("➡️ hitting cart service (fallback query)...");
+          cartResponse = await axios.get(`http://localhost:3002/api/cart`, {
             headers: { Authorization: `Bearer ${token}` },
+            params: { userId: user.id }
+          });
+        } catch (err3) {
+          console.error("All cart fetch attempts failed:", err3.response?.status, err3.response?.data ?? err3.message);
+          const status = err3.response?.status || 502;
+          const message = err3.response?.data?.message || err3.message;
+          return res.status(status === 404 ? 404 : 502).json({
+            message: "Failed to fetch cart from cart service",
+            error: message,
+          });
+        }
+      }
+    }
+
+    // normalize items from possible shapes
+    const items = cartResponse.data?.cart?.items ?? cartResponse.data?.items ?? [];
+    console.debug("createOrder: cart payload", { userId: user.id, itemsLength: items.length, cartData: cartResponse.data });
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        message: "Cart is empty or not accessible for this user/token.",
+        debug: { userId: user.id, cartPayload: cartResponse.data }
+      });
+    }
+
+    // fetch each product by id (with fallback to product list)
+    const products = [];
+    for (const item of items) {
+      const prodId = item.productId;
+      let foundProduct = null;
+
+      try {
+        const productRes = await axios.get(`http://localhost:3001/api/products/${prodId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        foundProduct = productRes.data?.product ?? productRes.data;
+      } catch (err) {
+        if (err.response?.status === 404) {
+          // fallback to list
+          try {
+            const listRes = await axios.get(`http://localhost:3001/api/products`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const list = listRes.data?.products ?? listRes.data ?? [];
+            foundProduct = list.find(p =>
+              (p._id?.toString && p._id.toString() === prodId.toString()) ||
+              (p.id?.toString && p.id.toString() === prodId.toString())
+            ) ?? null;
+          } catch (listErr) {
+            const status = listErr.response?.status || 502;
+            const message = listErr.response?.data?.message || listErr.message;
+            return res.status(status === 404 ? 404 : 502).json({
+              message: `Failed to fetch products from product service for ${prodId}`,
+              error: message
+            });
           }
-        );
-        return res.data;
-      })
-    );
+        } else {
+          const status = err.response?.status || 502;
+          const message = err.response?.data?.message || err.message;
+          return res.status(status === 404 ? 404 : 502).json({
+            message: `Failed to fetch product ${prodId} from product service`,
+            error: message
+          });
+        }
+      }
 
-    const flatProducts = product.flatMap(p => p.products);
+      if (!foundProduct) {
+        return res.status(404).json({ message: `Product not found for ID: ${prodId}` });
+      }
+      products.push(foundProduct);
+    }
 
+    // validate stock and compute totals
     let priceAmount = 0;
     let currency = "INR";
 
-     // 🧠 Check stock availability before creating order
-    for (const item of cartResponse.data.cart.items) {
-      const foundProduct = flatProducts.find(
-        (p) => p._id.toString() === item.productId.toString()
+    for (const item of items) {
+      const foundProduct = products.find(p =>
+        (p._id?.toString && p._id.toString() === item.productId.toString()) ||
+        (p.id?.toString && p.id.toString() === item.productId.toString())
       );
 
       if (!foundProduct) {
         return res.status(404).json({ message: `Product not found for ID: ${item.productId}` });
       }
 
-      // 🚨 STOCK VALIDATION
-      if (foundProduct.stock < item.quantity) {
+      const available = foundProduct.stock ?? 0;
+      if (available < item.quantity) {
         return res.status(400).json({
-          message: `Out of Stock: Only ${foundProduct.stock} left for "${foundProduct.title}"`,
+          message: `Out of Stock: Only ${available} left for "${foundProduct.title ?? foundProduct.name}"`,
         });
       }
+
+      const unit = foundProduct.price?.amount ?? foundProduct.price ?? 0;
+      priceAmount += unit * item.quantity;
+      currency = foundProduct.price?.currency || currency;
     }
 
-    const orderItems = cartResponse.data.cart.items.map((item, index) => {
-        const foundProduct = flatProducts.find((p) => p._id.toString() === item.productId.toString());
-
-      if (!foundProduct) {
-        throw new Error(`Product not found for ID: ${item.productId}`);
-      }
-
-      const itemTotal = foundProduct.price.amount * item.quantity;
-      priceAmount += itemTotal;
-      currency = foundProduct.price.currency || "INR";
-
+    const orderItems = items.map((item) => {
+      const prod = products.find(p =>
+        (p._id?.toString && p._id.toString() === item.productId.toString()) ||
+        (p.id?.toString && p.id.toString() === item.productId.toString())
+      );
+      const unit = prod.price?.amount ?? prod.price ?? 0;
       return {
         product: item.productId,
         quantity: item.quantity,
-        price: {
-          amount: itemTotal,
-          currency: foundProduct.price.currency || "INR",
-        },
+        price: { amount: unit * item.quantity, currency }
       };
     });
 
-     const newOrder = await orderModel.create({
+    const newOrder = await orderModel.create({
       user: user.id,
       items: orderItems,
-       totalPrice: {
-        amount: priceAmount,
-        currency,
-      },
+      totalPrice: { amount: priceAmount, currency },
       status: "PENDING",
       shippingAddress: req.body.shippingAddress
     });
 
-     res.status(200).json({
-      message: "Order created successfully",
-      order: newOrder,
-    });
+    try { await publishToQueue("ORDER_SELLER_DASHBOARD.ORDER_CREATED", newOrder); } catch (pubErr) { console.warn("publishToQueue warning:", pubErr?.message || pubErr); }
+
+    return res.status(201).json({ message: "Order created successfully", order: newOrder });
   } catch (err) {
-    // console.error("❌ Order creation failed:", err.message);
-    res
-      .status(500)
-      .json({ message: "Internal server error", error: err.message });
+    console.error("❌ Order creation failed:", err.response?.data ?? err.message ?? err);
+    return res.status(500).json({ message: "Internal server error", error: err.message ?? err });
   }
 }
 

@@ -25,12 +25,15 @@ async function registerController(req, res) {
       password: await bcrypt.hash(password, 10),
     });
 
-    await publishToQueue('AUTH_NOTIFICATION.USER_CREATED', {
+    await Promise.all([
+      publishToQueue('AUTH_NOTIFICATION.USER_CREATED', {
       id: user._id,
       username: user.username,
       email: user.email,
       fullName: user.username.firstName + " " + user.username.lastName
-    })
+    }),
+      publishToQueue('AUTH_SELLER_DASHBOARD.USER_CREATED', user)
+    ])
 
     const token = jwt.sign(
       {

@@ -6,7 +6,12 @@ const app = express()
 
 app.use(express.json())
 app.use(cookieParser())
-app.use(express.urlencoded())
+
+app.get('/', (req, res) => {
+    res.status(200).json({
+        message: "Auth service is running"
+    });
+})
 
 app.use("/api/auth", authRoutes)
 

@@ -15,14 +15,37 @@ module.exports = function () {
 })
 
  subscribeToQueue("PAYMENT_NOTIFICATION.PAYMENT_INITIATED", async (data) => {
-        const emailHTMLTemplate = `
-        <h1>Payment Initiated</h1>
-        <p>Dear ${data.fullName},</p>
-        <p>Your payment of ${data.currency} ${data.amount} for the order ID: ${data.orderId} has been initiated.</p>
-        <p>We will notify you once the payment is completed.</p>
-        <p>Best regards,<br/>The Team</p>
-        `;
-        await sendEmail(data.email, "Payment Initiated", "Your payment is being processed", emailHTMLTemplate);
+        try {
+    console.log("📩 PAYMENT_NOTIFICATION.PAYMENT_INITIATED received:", data);
+
+    // ✅ Safely extract fields
+    const { email, fullName, amount, currency, orderId } = data;
+
+    // ✅ Fallback name if missing
+    const name = fullName || "Customer";
+
+    // ✅ Proper email HTML
+    const emailHTMLTemplate = `
+      <h1>💳 Payment Initiated</h1>
+      <p>Dear ${name},</p>
+      <p>Your payment of <strong>${currency} ${amount}</strong> for Order ID <strong>${orderId}</strong> has been successfully initiated.</p>
+      <p>We will notify you once your payment is confirmed.</p>
+      <br/>
+      <p>Best regards,<br/>The Nova Marketplace Team</p>
+    `;
+
+    // ✅ Send email
+    await sendEmail(
+      email,
+      "Payment Initiated",
+      "Your payment is being processed",
+      emailHTMLTemplate
+    );
+
+    console.log("✅ Payment initiation mail sent successfully to:", email);
+  } catch (err) {
+    console.error("❌ Failed to send payment initiation email:", err);
+  }
     }
 )
 

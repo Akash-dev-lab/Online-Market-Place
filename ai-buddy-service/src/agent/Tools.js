@@ -8,7 +8,7 @@ const searchProduct = tool(async ({query}, config) => {
     const token = config?.metadata?.token;
     console.log("🔑 Tool received token:", token);
 
-    const response = await axios.get(`http://localhost:3001/api/products?q=${query}`, {
+    const response = await axios.get(`http://nova-ALB-28899788.ap-south-1.elb.amazonaws.com/api/products?q=${query}`, {
         headers: {
             Authorization: `Bearer ${token}`
         }
@@ -29,7 +29,7 @@ const addProductToCart = tool(async ({productId, qty = 1}, config) => {
     const token = config?.metadata?.token;
      console.log("🛒 Tool received token:", token);
 
-    const response = await axios.post(`http://localhost:3002/api/cart/items`, {
+    const response = await axios.post(`http://nova-ALB-28899788.ap-south-1.elb.amazonaws.com/api/cart/items`, {
         productId,
         qty
     },

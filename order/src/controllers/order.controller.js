@@ -15,7 +15,7 @@ async function createOrder(req, res) {
     return res.status(401).json({ message: "Unauthorized: token missing" });
 
   try {
-    const cartResponse = await axios.get(`http://localhost:3002/api/cart/`, {
+    const cartResponse = await axios.get(`http://nova-ALB-28899788.ap-south-1.elb.amazonaws.com/api/cart/`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -30,7 +30,7 @@ async function createOrder(req, res) {
     // ✅ Mock/test friendly product fetch
     let products = [];
     try {
-      const productRes = await axios.get(`http://localhost:3001/api/products`, {
+      const productRes = await axios.get(`http://nova-ALB-28899788.ap-south-1.elb.amazonaws.com/api/products`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       products = productRes.data?.products ?? productRes.data ?? [];

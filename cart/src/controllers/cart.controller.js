@@ -20,7 +20,7 @@ for (let { field, condition, message } of validations) {
 }
 
    // ✅ Product existence verification
-    const productURL = `http://localhost:3001/api/products/${productId}`;
+    const productURL = `http://nova-ALB-28899788.ap-south-1.elb.amazonaws.com/api/products/${productId}`;
     const productResponse = await axios.get(productURL).catch(() => null);
 
     if (!productResponse || productResponse.status !== 200) {

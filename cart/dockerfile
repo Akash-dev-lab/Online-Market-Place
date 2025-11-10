@@ -3,12 +3,10 @@ FROM node:18-alpine
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --production
+RUN npm install
 
 COPY . .
 
-# Environment variable for internal port
-ENV PORT=3002
 
 EXPOSE 3002
 

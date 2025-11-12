@@ -5,7 +5,7 @@ const agent = require("../agent/agent");
 
 async function initSocketServer(httpServer) {
   const io = new Server(httpServer, {
-    path: "/api/socket/socket.io/",
+    path: "/api/socket/socket.io",
   });
 
   io.use((socket, next) => {

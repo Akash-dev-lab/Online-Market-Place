@@ -8,6 +8,6 @@ const httpServer = http.createServer(app)
 
 initSocketServer(httpServer)
 
-httpServer.listen(process.env.PORT, () => {
+httpServer.listen(process.env.PORT || "0.0.0.0", () => {
     console.log("AI Buddy Service is running on port 3005")
 })

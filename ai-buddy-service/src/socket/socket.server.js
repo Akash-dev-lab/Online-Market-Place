@@ -12,9 +12,6 @@ async function initSocketServer(httpServer) {
     const cookies = socket.handshake.headers?.cookie;
     const { token } = cookies ? cookie.parse(cookies) : {};
 
-    console.log("🍪 Incoming Cookie:", cookies);
-    console.log("🔐 Parsed Token:", token);
-
     if (!token) return next(new Error("Token Not Provided"));
 
     try {
@@ -28,10 +25,9 @@ async function initSocketServer(httpServer) {
   });
 
   io.on("connection", (socket) => {
-    console.log("✅ User connected:", socket.user);
+    console.log(socket.user, socket.token);
 
     socket.on("message", async (data) => {
-      console.log("📨 Received:", data);
 
       const agentResponse = await agent.invoke(
         {
@@ -49,11 +45,11 @@ async function initSocketServer(httpServer) {
         }
       );
 
-      const finalResponse = agentResponse.messages.at(-1);
+       const lastMessage = agentResponse.messages[ agentResponse.messages.length - 1 ]
       console.log("🤖 AI Response:", finalResponse);
 
       // Send response back to client (Postman / frontend)
-      socket.emit("ai-response", finalResponse);
+      socket.emit("ai-response",  lastMessage.content);
     });
   });
 }

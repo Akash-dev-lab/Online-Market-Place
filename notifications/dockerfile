@@ -1,0 +1,15 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install --production
+
+COPY . .
+
+# Environment variable for internal port
+ENV PORT=3006
+
+EXPOSE 3006
+
+CMD ["npm", "start"]

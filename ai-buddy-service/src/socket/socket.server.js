@@ -12,7 +12,7 @@ async function initSocketServer(httpServer) {
     transports: ["websocket", "polling"],
     // allow ALB + browser CORS - restrict origin in prod
     cors: {
-      origin: true,
+      origin: "http://localhost:3000",
       credentials: true,
       methods: ["GET", "POST"]
     }

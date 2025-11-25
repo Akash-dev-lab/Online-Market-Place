@@ -5,8 +5,6 @@ async function addItemToCart(req, res) {
     const {productId, qty} = req.body;
     const userId = req.user.id;
 
-    console.log(userId)
-
     const validations = [
     { field: 'productId', condition: val => !val, message: 'Product ID is required' },
     { field: 'qty', condition: val => val === undefined, message: 'Quantity is required' },

@@ -1,4 +1,4 @@
-const userModel = require("../models/user.model")
+const sellerModel = require("../models/seller.model")
 const productModel = require("../models/product.model")
 const orderModel = require("../models/order.model")
 const paymentModel = require("../models/payment.model")
@@ -6,8 +6,7 @@ const {subscribeToQueue} = require("./broker")
 
 module.exports = async function () {
     subscribeToQueue('AUTH_SELLER_DASHBOARD.USER_CREATED', async (user) => {
-        await userModel.create(user);
-        console.log("User added:", user.email);
+        await sellerModel.create(user);
     })
 
     subscribeToQueue('PRODUCT_SELLER_DASHBOARD.PRODUCT_CREATED', async (product) => {

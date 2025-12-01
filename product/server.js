@@ -10,7 +10,7 @@ app.get("/health", (_req, res) => res.status(200).send("OK"));
     await connectDB();
     await connect();
 
-    const PORT = Number(process.env.PORT || 3001);
+    const PORT = Number(process.env.PORT || 3003);
     const HOST = "0.0.0.0";               // <- IMPORTANT for ALB
 
     const server = app.listen(PORT, HOST, () => {

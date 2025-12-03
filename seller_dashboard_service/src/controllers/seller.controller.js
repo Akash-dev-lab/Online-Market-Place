@@ -49,6 +49,50 @@ async function createProduct(req, res) {
     }
 }
 
+async function updateProduct(req, res) {
+  try {
+      const formData = new FormData({ maxDataSize: Infinity });
+
+      // simple text fields
+      if (req.body.title) formData.append("title", req.body.title);
+      if (req.body.description) formData.append("description", req.body.description);
+      if (req.body.priceAmount) formData.append("priceAmount", req.body.priceAmount);
+      if (req.body.priceCurrency) formData.append("priceCurrency", req.body.priceCurrency);
+      if (req.body.stock) formData.append("stock", req.body.stock);
+
+      // images (optional upload)
+      if (req.files && req.files.length > 0) {
+        req.files.forEach((file) => {
+          formData.append("images", file.buffer, file.originalname);
+        });
+      }
+
+      const productId = req.params.id;
+
+      // Forward request to PRODUCT-SERVICE
+      const response = await axios.put(
+        `http://localhost:3003/api/products/${productId}`,
+        formData, 
+        {
+          headers: {
+            ...formData.getHeaders(),
+            Authorization:
+              req.headers["authorization"] || req.headers["Authorization"],
+          },
+        }
+      );
+
+      res.status(200).json({
+        message: "Product Updated Successfully",
+        data: response.data,
+      });
+
+    } catch (err) {
+      console.error("Update Product Error:", err);
+      res.status(500).json({ error: "Product update failed", detail: err.message });
+    }
+}
+
 async function getSellerMetrics(req, res) {
   try {
     const sellerId = req.user?.id;
@@ -262,5 +306,6 @@ module.exports = {
   getSellerMetrics,
   getOrders,
   getProducts,
-  createProduct
+  createProduct,
+  updateProduct
 };

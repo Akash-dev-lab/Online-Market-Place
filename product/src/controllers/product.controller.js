@@ -96,7 +96,7 @@ async function updateProduct(req, res) {
   try {
     const { id } = req.params;
     const { title, description, priceAmount, priceCurrency } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.id; 
 
     const product = await Product.findById(id);
 

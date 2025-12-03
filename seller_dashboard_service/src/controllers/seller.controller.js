@@ -1,11 +1,54 @@
 const orderModel = require("../models/order.model");
 const paymentModel = require("../models/payment.model");
 const productModel = require("../models/product.model");
+const axios = require('axios');
+const FormData = require('form-data');
 
 /**
  * 📊 GET /api/seller/dashboard
  * Returns Seller Analytics: total sales, total revenue, and top-selling products.
  */
+
+async function createProduct(req, res) {
+   try {
+      // Prepare FormData
+      const formData = new FormData({ maxDataSize: Infinity });
+
+      formData.append("title", req.body.title);
+      formData.append("description", req.body.description);
+      formData.append("priceAmount", req.body.priceAmount);
+      formData.append("priceCurrency", req.body.priceCurrency);
+      formData.append("stock", req.body.stock);
+
+      // images
+      if (req.files && req.files.length > 0) {
+        req.files.forEach((img) => {
+          formData.append("images", img.buffer, img.originalname);
+        });
+      }
+
+      // Make request to PRODUCT SERVICE
+      const response = await axios.post(
+        "http://localhost:3003/api/products/",
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(),
+            Authorization: req.headers.authorization, // Pass token
+          },
+        }
+      );
+
+      res.status(200).json({
+        message: "Product Created Successfully!",
+        data: response.data,
+      });
+    } catch (err) {
+      console.error("Product Create Error:", err);
+      res.status(500).json({ error: "Product create failed", detail: err.message });
+    }
+}
+
 async function getSellerMetrics(req, res) {
   try {
     const sellerId = req.user?.id;
@@ -219,4 +262,5 @@ module.exports = {
   getSellerMetrics,
   getOrders,
   getProducts,
+  createProduct
 };

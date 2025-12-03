@@ -38,7 +38,7 @@ module.exports = async function () {
     const clean = stripId(product);
 
     await productModel.updateOne(
-      { productId: clean.productId }, // unique field from product service
+      { productId: clean._Id }, // unique field from product service
       { $set: clean },
       { upsert: true }
     );

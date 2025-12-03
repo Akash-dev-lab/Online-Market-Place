@@ -93,6 +93,89 @@ async function updateProduct(req, res) {
     }
 }
 
+async function deleteProduct(req, res) {
+  try {
+      const productId = req.params.id;
+
+      // Forward DELETE request to Product-Service
+      const response = await axios.delete(
+        `http://localhost:3003/api/products/${productId}`,
+        {
+          headers: {
+            Authorization:
+              req.headers["authorization"] || req.headers["Authorization"],
+          },
+        }
+      );
+
+      return res.status(200).json({
+        message: "Product Deleted Successfully",
+        data: response.data,
+      });
+
+    } catch (err) {
+      console.error("Delete Product Error:", err);
+      return res.status(500).json({
+        error: "Product delete failed",
+        detail: err.message
+      });
+    }
+}
+
+async function getSellerProducts(req, res) {
+  try {
+
+    const token = req.headers.authorization; // always lowercase
+
+      if (!token) {
+        return res.status(401).json({ message: "Token missing in seller-dashboard" });
+      }
+      
+      const response = await axios.get(
+        "http://localhost:3003/api/products/seller",
+        {
+          headers: {
+            Authorization: token
+          },
+        }
+      );
+
+      return res.status(200).json({
+        message: "Seller Products Fetched Successfully",
+        data: response.data,
+      });
+
+    } catch (err) {
+      console.error("Get Seller Products Error:", err);
+      return res.status(500).json({
+        error: "Failed to fetch seller products",
+        detail: err.message,
+      });
+    }
+}
+
+async function getProductsById(req, res) {
+  try {
+      const productId = req.params.id;
+
+      const response = await axios.get(
+        `http://localhost:3003/api/products/${productId}`
+      );
+
+      return res.status(200).json({
+        message: "Product Fetched Successfully",
+        data: response.data,
+      });
+
+    } catch (err) {
+      console.error("Get Product By ID Error:", err);
+      return res.status(err.response?.status || 500).json({
+        error: "Failed to fetch product",
+        detail: err.response?.data || err.message,
+      });
+    }
+}
+
 async function getSellerMetrics(req, res) {
   try {
     const sellerId = req.user?.id;
@@ -307,5 +390,8 @@ module.exports = {
   getOrders,
   getProducts,
   createProduct,
-  updateProduct
+  updateProduct,
+  deleteProduct,
+  getSellerProducts,
+  getProductsById
 };

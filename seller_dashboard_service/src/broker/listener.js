@@ -37,13 +37,15 @@ module.exports = async function () {
   subscribeToQueue("PRODUCT_SELLER_DASHBOARD.PRODUCT_CREATED", async (product) => {
     const clean = stripId(product);
 
+     const productId = product._id;
+
     await productModel.updateOne(
-      { productId: clean._Id }, // unique field from product service
-      { $set: clean },
+      { productId }, // unique field from product service
+      { $set: { ...clean, productId } },
       { upsert: true }
     );
 
-    console.log("✔ Product synced:", clean.productId);
+    console.log("✔ Product synced:", productId);
   });
 
   // -----------------------------

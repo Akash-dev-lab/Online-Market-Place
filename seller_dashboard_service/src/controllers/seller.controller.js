@@ -2,51 +2,45 @@ const orderModel = require("../models/order.model");
 const paymentModel = require("../models/payment.model");
 const productModel = require("../models/product.model");
 const axios = require('axios');
-const FormData = require('form-data');
+const FormData = require('form-data')
 
 /**
  * 📊 GET /api/seller/dashboard
  * Returns Seller Analytics: total sales, total revenue, and top-selling products.
  */
 
-async function createProduct(req, res) {
-   try {
-      // Prepare FormData
-      const formData = new FormData({ maxDataSize: Infinity });
+async function forwardToProductService(req, res) {
+  try {
+    const token = req.cookies.token; // seller token
+    const formData = new FormData();
 
-      formData.append("title", req.body.title);
-      formData.append("description", req.body.description);
-      formData.append("priceAmount", req.body.priceAmount);
-      formData.append("priceCurrency", req.body.priceCurrency);
-      formData.append("stock", req.body.stock);
+    // Normal fields
+    Object.keys(req.body).forEach(key => {
+      formData.append(key, req.body[key]);
+    });
 
-      // images
-      if (req.files && req.files.length > 0) {
-        req.files.forEach((img) => {
-          formData.append("images", img.buffer, img.originalname);
-        });
-      }
+    // Images
+    req.files.forEach(file => {
+      formData.append("images", file.buffer, file.originalname);
+    });
 
-      // Make request to PRODUCT SERVICE
-      const response = await axios.post(
-        "http://localhost:3003/api/products/",
-        formData,
-        {
-          headers: {
-            ...formData.getHeaders(),
-            Authorization: req.headers.authorization, // Pass token
-          },
+    const response = await axios.post(
+      "http://localhost:3003/api/products", // product service route
+      formData,
+      {
+        headers: {
+          ...formData.getHeaders(),
+          Authorization: `Bearer ${token}`
         }
-      );
+      }
+    );
 
-      res.status(200).json({
-        message: "Product Created Successfully!",
-        data: response.data,
-      });
-    } catch (err) {
-      console.error("Product Create Error:", err);
-      res.status(500).json({ error: "Product create failed", detail: err.message });
-    }
+    res.json(response.data);
+
+  } catch (error) {
+    console.log("PRODUCT SERVICE ERROR:", error.response?.data || error.message);
+    res.status(500).json({ error: "Product Sync Failed", detail: error.message });
+  }
 }
 
 async function updateProduct(req, res) {
@@ -187,11 +181,15 @@ async function getSellerMetrics(req, res) {
     // 🧮 1️⃣ Get all products by this seller
     const products = await productModel.find({ seller: sellerId }).select("_id title price");
 
+    const totalProducts = products.length;
+
     if (!products.length) {
       return res.status(200).json({
-        sales: 0,
-        revenue: 0,
-        topProducts: [],
+        totalSales: 0,
+        totalRevenue: 0,
+        totalProducts: 0,
+        topProduct: null,
+        orders: [],
         message: "No products found for this seller",
       });
     }
@@ -202,13 +200,15 @@ async function getSellerMetrics(req, res) {
     const orders = await orderModel.find({
       "items.product": { $in: productIds },
       status: { $in: ["COMPLETED", "SHIPPED", "DELIVERED"] }, // filter successful orders
-    });
+    }).sort({ createdAt: -1 });
 
     if (!orders.length) {
       return res.status(200).json({
-        sales: 0,
-        revenue: 0,
-        topProducts: [],
+        totalSales: 0,
+        totalRevenue: 0,
+        totalProducts,
+        topProduct: null,
+        orders: [],
         message: "No orders yet for this seller",
       });
     }
@@ -247,8 +247,9 @@ async function getSellerMetrics(req, res) {
 
     // 📦 5️⃣ Send response
     return res.status(200).json({
-      sales: totalSales,
-      revenue: totalRevenue,
+      totalSales,
+      totalRevenue,
+      totalProducts,
       topProducts,
     });
   } catch (error) {
@@ -389,7 +390,7 @@ module.exports = {
   getSellerMetrics,
   getOrders,
   getProducts,
-  createProduct,
+  forwardToProductService,
   updateProduct,
   deleteProduct,
   getSellerProducts,

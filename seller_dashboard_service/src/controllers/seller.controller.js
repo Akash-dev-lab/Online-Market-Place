@@ -45,130 +45,125 @@ async function forwardToProductService(req, res) {
 
 async function updateProduct(req, res) {
   try {
-      const formData = new FormData({ maxDataSize: Infinity });
+    const token = req.cookies.token;
+    const productId = req.params.id;
 
-      // simple text fields
-      if (req.body.title) formData.append("title", req.body.title);
-      if (req.body.description) formData.append("description", req.body.description);
-      if (req.body.priceAmount) formData.append("priceAmount", req.body.priceAmount);
-      if (req.body.priceCurrency) formData.append("priceCurrency", req.body.priceCurrency);
-      if (req.body.stock) formData.append("stock", req.body.stock);
+    const formData = new FormData();
 
-      // images (optional upload)
-      if (req.files && req.files.length > 0) {
-        req.files.forEach((file) => {
-          formData.append("images", file.buffer, file.originalname);
-        });
+    // Append body fields dynamically
+    Object.keys(req.body).forEach((key) => {
+      if (req.body[key] !== undefined) {
+        formData.append(key, req.body[key]);
       }
+    });
 
-      const productId = req.params.id;
-
-      // Forward request to PRODUCT-SERVICE
-      const response = await axios.put(
-        `http://localhost:3003/api/products/${productId}`,
-        formData, 
-        {
-          headers: {
-            ...formData.getHeaders(),
-            Authorization:
-              req.headers["authorization"] || req.headers["Authorization"],
-          },
-        }
-      );
-
-      res.status(200).json({
-        message: "Product Updated Successfully",
-        data: response.data,
+    // Append images (optional)
+    if (req.files?.length > 0) {
+      req.files.forEach((file) => {
+        formData.append("images", file.buffer, file.originalname);
       });
-
-    } catch (err) {
-      console.error("Update Product Error:", err);
-      res.status(500).json({ error: "Product update failed", detail: err.message });
     }
+
+    const response = await axios.put(
+      `http://localhost:3003/api/products/${productId}`,
+      formData,
+      {
+        headers: {
+          ...formData.getHeaders(),
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    return res.status(200).json({
+      message: "Product updated successfully",
+      data: response.data,
+    });
+
+  } catch (err) {
+    console.error("UPDATE PRODUCT ERROR:", err.response?.data || err.message);
+    res.status(500).json({
+      error: "Product update failed",
+      detail: err.message,
+    });
+  }
 }
 
 async function deleteProduct(req, res) {
   try {
-      const productId = req.params.id;
+    const token = req.cookies.token;
+    const productId = req.params.id;
 
-      // Forward DELETE request to Product-Service
-      const response = await axios.delete(
-        `http://localhost:3003/api/products/${productId}`,
-        {
-          headers: {
-            Authorization:
-              req.headers["authorization"] || req.headers["Authorization"],
-          },
+    const response = await axios.delete(
+      `http://localhost:3003/api/products/${productId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
         }
-      );
+      }
+    );
 
-      return res.status(200).json({
-        message: "Product Deleted Successfully",
-        data: response.data,
-      });
+    return res.status(200).json({
+      message: "Product deleted successfully",
+      data: response.data
+    });
 
-    } catch (err) {
-      console.error("Delete Product Error:", err);
-      return res.status(500).json({
-        error: "Product delete failed",
-        detail: err.message
-      });
-    }
+  } catch (err) {
+    console.error("DELETE PRODUCT ERROR:", err.response?.data || err.message);
+    res.status(500).json({
+      error: "Product delete failed",
+      detail: err.message
+    });
+  }
 }
 
 async function getSellerProducts(req, res) {
   try {
+    const token = req.cookies.token;
 
-    const token = req.headers.authorization; // always lowercase
-
-      if (!token) {
-        return res.status(401).json({ message: "Token missing in seller-dashboard" });
+    const response = await axios.get(
+      "http://localhost:3003/api/products/seller",
+      {
+        headers: { Authorization: `Bearer ${token}` }
       }
-      
-      const response = await axios.get(
-        "http://localhost:3003/api/products/seller",
-        {
-          headers: {
-            Authorization: token
-          },
-        }
-      );
+    );
 
-      return res.status(200).json({
-        message: "Seller Products Fetched Successfully",
-        data: response.data,
-      });
+    return res.status(200).json({
+      message: "Seller products fetched successfully",
+      data: response.data
+    });
 
-    } catch (err) {
-      console.error("Get Seller Products Error:", err);
-      return res.status(500).json({
-        error: "Failed to fetch seller products",
-        detail: err.message,
-      });
-    }
+  } catch (err) {
+    console.error("GET SELLER PRODUCTS ERROR:", err.response?.data || err.message);
+    res.status(500).json({
+      error: "Failed to fetch seller products",
+      detail: err.message
+    });
+  }
 }
 
 async function getProductsById(req, res) {
   try {
-      const productId = req.params.id;
+    const productId = req.params.id;
 
-      const response = await axios.get(
-        `http://localhost:3003/api/products/${productId}`
-      );
+    const response = await axios.get(
+      `http://localhost:3003/api/products/${productId}`
+    );
 
-      return res.status(200).json({
-        message: "Product Fetched Successfully",
-        data: response.data,
-      });
+    return res.status(200).json({
+      message: "Product fetched successfully",
+      data: response.data
+    });
 
-    } catch (err) {
-      console.error("Get Product By ID Error:", err);
-      return res.status(err.response?.status || 500).json({
-        error: "Failed to fetch product",
-        detail: err.response?.data || err.message,
-      });
-    }
+  } catch (err) {
+    console.error("GET PRODUCT BY ID ERROR:", err.response?.data || err.message);
+    res.status(err.response?.status || 500).json({
+      error: "Failed to fetch product",
+      detail: err.response?.data || err.message
+    });
+  }
 }
+
 
 async function getSellerMetrics(req, res) {
   try {

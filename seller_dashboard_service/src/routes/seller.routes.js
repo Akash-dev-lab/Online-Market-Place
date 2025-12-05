@@ -12,7 +12,7 @@ router.get('/orders', createAuthMiddleware(['seller']), getOrders);
 router.get('/products', createAuthMiddleware(['seller']), getProducts);
 
 router.post("/products/create", createAuthMiddleware(["seller"]), upload.array("images", 5), forwardToProductService);
-router.put("/products/update/:id", createAuthMiddleware(["seller"]), upload.array("images", 5), updateProduct); //remaining
+router.put("/products/update/:id", createAuthMiddleware(["seller"]), upload.array("images", 5), updateProduct);
 router.delete("/products/delete/:id", createAuthMiddleware(["seller"]), deleteProduct); //remaining
 router.get("/seller/products", createAuthMiddleware(["seller"]), getSellerProducts); //remaining
 router.get("/products/:id", getProductsById); //remaining

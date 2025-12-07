@@ -174,11 +174,20 @@ async function getSellerMetrics(req, res) {
     }
 
     // 🧮 1️⃣ Get all products by this seller
-    const products = await productModel.find({ seller: sellerId }).select("_id title price");
+    // const products = await productModel.find({ seller: sellerId }).select("_id title price");
 
-    const totalProducts = products.length;
+    const token = req.cookies.token;
 
-    if (!products.length) {
+    const response = await axios.get(
+      "http://localhost:3003/api/products/seller",
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
+
+    const totalProducts = response.data.products;
+
+    if (totalProducts.length === 0) {
       return res.status(200).json({
         totalSales: 0,
         totalRevenue: 0,
@@ -189,7 +198,9 @@ async function getSellerMetrics(req, res) {
       });
     }
 
-    const productIds = products.map((p) => p._id.toString());
+    const productIds = totalProducts.map((p) => p._id.toString());
+
+    console.log(productIds)
 
     // 🧾 2️⃣ Get all orders containing seller’s products
     const orders = await orderModel.find({

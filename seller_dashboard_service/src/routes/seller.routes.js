@@ -13,8 +13,8 @@ router.get('/products', createAuthMiddleware(['seller']), getProducts);
 
 router.post("/products/create", createAuthMiddleware(["seller"]), upload.array("images", 5), forwardToProductService);
 router.put("/products/update/:id", createAuthMiddleware(["seller"]), upload.array("images", 5), updateProduct);
-router.delete("/products/delete/:id", createAuthMiddleware(["seller"]), deleteProduct); //remaining
-router.get("/seller/products", createAuthMiddleware(["seller"]), getSellerProducts); //remaining
+router.delete("/products/delete/:id", createAuthMiddleware(["seller"]), deleteProduct);
+router.get("/seller/products", createAuthMiddleware(["seller"]), getSellerProducts);
 router.get("/products/:id", getProductsById); //remaining
 
 

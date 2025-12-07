@@ -173,9 +173,7 @@ async function getSellerMetrics(req, res) {
       return res.status(401).json({ message: "Unauthorized: Seller ID missing" });
     }
 
-    // 🧮 1️⃣ Get all products by this seller
-    // const products = await productModel.find({ seller: sellerId }).select("_id title price");
-
+    // 🧮 1️⃣ Get all products of seller
     const token = req.cookies.token;
 
     const response = await axios.get(
@@ -199,8 +197,6 @@ async function getSellerMetrics(req, res) {
     }
 
     const productIds = totalProducts.map((p) => p._id.toString());
-
-    console.log(productIds)
 
     // 🧾 2️⃣ Get all orders containing seller’s products
     const orders = await orderModel.find({

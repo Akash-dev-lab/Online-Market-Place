@@ -7,7 +7,7 @@ const { addItemToCart, getCart, updateCartItem, deleteCartItem, clearCart } = re
 
 router.get('/', createAuthMiddleware(['user']), getCart)
 router.post('/items', createAuthMiddleware(['user']), valid.validateAddItemToCart, addItemToCart)
-router.patch('/items/:productId', createAuthMiddleware(['user']), valid.validateUpdateCartItem, updateCartItem)
+router.put('/items/:productId', createAuthMiddleware(['user']), valid.validateUpdateCartItem, updateCartItem)
 router.delete('/items/:productId', createAuthMiddleware(['user']), deleteCartItem)
 router.delete('/', createAuthMiddleware(['user']), clearCart)
 

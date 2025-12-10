@@ -32,7 +32,7 @@ for (let { field, condition, message } of validations) {
         cart = new cartModel({user: userId, items: []});
     }
 
-    const existingItemIndex = cart.items.findIndex(item => item.product === productId);
+    const existingItemIndex = cart.items.findIndex(item => item.productId.toString() === productId.toString());
     if (existingItemIndex >= 0) {
         cart.items[existingItemIndex].quantity += qty;
     } else {

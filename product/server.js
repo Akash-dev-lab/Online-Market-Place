@@ -1,7 +1,7 @@
 require("dotenv").config();
 const app = require("./src/app");
 const connectDB = require("./src/db/db");
-const {connect} = require("./src/broker/broker")
+const { connect } = require("./src/broker/broker")
 
 app.get("/health", (_req, res) => res.status(200).send("OK"));
 
@@ -10,7 +10,7 @@ app.get("/health", (_req, res) => res.status(200).send("OK"));
     await connectDB();
     await connect();
 
-    const PORT = Number(process.env.PORT || 3003);
+    const PORT = Number(process.env.PORT || 3001);
     const HOST = "0.0.0.0";               // <- IMPORTANT for ALB
 
     const server = app.listen(PORT, HOST, () => {

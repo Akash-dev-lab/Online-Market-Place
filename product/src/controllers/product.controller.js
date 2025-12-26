@@ -50,7 +50,7 @@ async function createProduct(req, res) {
 
     return res.status(201).json({ message: "Product created successfully", product });
   } catch (error) {
-    // console.error(error);
+    console.error(error);
     return res.status(500).json({ message: "Server error" });
   }
 }
@@ -95,8 +95,8 @@ async function getProductsById(req, res) {
 async function updateProduct(req, res) {
   try {
     const { id } = req.params;
-    const { title, description, priceAmount, priceCurrency } = req.body;
-    const userId = req.user.id;
+    const { title, description, priceAmount, priceCurrency, stock } = req.body;
+    const userId = req.user.id; 
 
     const product = await Product.findById(id);
 
@@ -117,6 +117,7 @@ async function updateProduct(req, res) {
 
      if (title) product.title = title;
     if (description) product.description = description;
+    if(stock) product.stock = Number(stock);
 
     // ✅ Update nested price
     if (priceAmount || priceCurrency) {

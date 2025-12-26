@@ -10,7 +10,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 router.post("/", createAuthMiddleware(['admin', "seller"]), upload.array('images', 5), productValidators, createProduct)
 
 router.get("/", getProducts)
-router.patch("/:id", createAuthMiddleware(["seller"]), upload.array('images', 5), updateProduct)
+router.put("/:id", createAuthMiddleware(["seller"]), upload.array('images', 5), updateProduct)
 router.delete("/:id", createAuthMiddleware(["seller"]), deleteProduct)
 router.get("/seller", createAuthMiddleware(["seller"]), getSellerProducts)
 router.get("/:id", getProductsById)

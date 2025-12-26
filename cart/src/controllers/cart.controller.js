@@ -32,12 +32,21 @@ async function addItemToCart(req, res) {
     cart = new cartModel({ user: userId, items: [] });
   }
 
+<<<<<<< HEAD
   const existingItemIndex = cart.items.findIndex(item => item.product === productId);
   if (existingItemIndex >= 0) {
     cart.items[existingItemIndex].quantity += qty;
   } else {
     cart.items.push({ title: product.product.title, price: product.product.price, images: product.product.Images, productId: productId, quantity: qty });
   }
+=======
+    const existingItemIndex = cart.items.findIndex(item => item.productId.toString() === productId.toString());
+    if (existingItemIndex >= 0) {
+        cart.items[existingItemIndex].quantity += qty;
+    } else {
+        cart.items.push({ title: product.product.title, price: product.product.price, images: product.product.Images, productId: productId, quantity: qty});
+    }
+>>>>>>> 10b4dcde3d767ee5e893fa7efc260fa7e8693ab7
 
   await cart.save();
   res.status(200).json({ message: 'Item added to cart', cart });

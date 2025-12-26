@@ -1,11 +1,170 @@
 const orderModel = require("../models/order.model");
 const paymentModel = require("../models/payment.model");
 const productModel = require("../models/product.model");
+const axios = require('axios');
+const FormData = require('form-data')
 
 /**
  * 📊 GET /api/seller/dashboard
  * Returns Seller Analytics: total sales, total revenue, and top-selling products.
  */
+
+async function forwardToProductService(req, res) {
+  try {
+    const token = req.cookies.token; // seller token
+    const formData = new FormData();
+
+    // Normal fields
+    Object.keys(req.body).forEach(key => {
+      formData.append(key, req.body[key]);
+    });
+
+    // Images
+    req.files.forEach(file => {
+      formData.append("images", file.buffer, file.originalname);
+    });
+
+    const response = await axios.post(
+      "http://localhost:3003/api/products", // product service route
+      formData,
+      {
+        headers: {
+          ...formData.getHeaders(),
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    res.json(response.data);
+
+  } catch (error) {
+    console.log("PRODUCT SERVICE ERROR:", error.response?.data || error.message);
+    res.status(500).json({ error: "Product Sync Failed", detail: error.message });
+  }
+}
+
+async function updateProduct(req, res) {
+  try {
+    const token = req.cookies.token;
+    const productId = req.params.id;
+
+    const formData = new FormData();
+
+    // Append body fields dynamically
+    Object.keys(req.body).forEach((key) => {
+      if (req.body[key] !== undefined) {
+        formData.append(key, req.body[key]);
+      }
+    });
+
+    // Append images (optional)
+    if (req.files?.length > 0) {
+      req.files.forEach((file) => {
+        formData.append("images", file.buffer, file.originalname);
+      });
+    }
+
+    const response = await axios.put(
+      `http://localhost:3003/api/products/${productId}`,
+      formData,
+      {
+        headers: {
+          ...formData.getHeaders(),
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    return res.status(200).json({
+      message: "Product updated successfully",
+      data: response.data,
+    });
+
+  } catch (err) {
+    console.error("UPDATE PRODUCT ERROR:", err.response?.data || err.message);
+    res.status(500).json({
+      error: "Product update failed",
+      detail: err.message,
+    });
+  }
+}
+
+async function deleteProduct(req, res) {
+  try {
+    const token = req.cookies.token;
+    const productId = req.params.id;
+
+    const response = await axios.delete(
+      `http://localhost:3003/api/products/${productId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    return res.status(200).json({
+      message: "Product deleted successfully",
+      data: response.data
+    });
+
+  } catch (err) {
+    console.error("DELETE PRODUCT ERROR:", err.response?.data || err.message);
+    res.status(500).json({
+      error: "Product delete failed",
+      detail: err.message
+    });
+  }
+}
+
+async function getSellerProducts(req, res) {
+  try {
+    const token = req.cookies.token;
+
+    const response = await axios.get(
+      "http://localhost:3003/api/products/seller",
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
+
+    return res.status(200).json({
+      message: "Seller products fetched successfully",
+      data: response.data
+    });
+
+  } catch (err) {
+    console.error("GET SELLER PRODUCTS ERROR:", err.response?.data || err.message);
+    res.status(500).json({
+      error: "Failed to fetch seller products",
+      detail: err.message
+    });
+  }
+}
+
+async function getProductsById(req, res) {
+  try {
+    const productId = req.params.id;
+
+    const response = await axios.get(
+      `http://localhost:3003/api/products/${productId}`
+    );
+
+    return res.status(200).json({
+      message: "Product fetched successfully",
+      data: response.data
+    });
+
+  } catch (err) {
+    console.error("GET PRODUCT BY ID ERROR:", err.response?.data || err.message);
+    res.status(err.response?.status || 500).json({
+      error: "Failed to fetch product",
+      detail: err.response?.data || err.message
+    });
+  }
+}
+
+
 async function getSellerMetrics(req, res) {
   try {
     const sellerId = req.user?.id;
@@ -14,31 +173,44 @@ async function getSellerMetrics(req, res) {
       return res.status(401).json({ message: "Unauthorized: Seller ID missing" });
     }
 
-    // 🧮 1️⃣ Get all products by this seller
-    const products = await productModel.find({ seller: sellerId }).select("_id title price");
+    // 🧮 1️⃣ Get all products of seller
+    const token = req.cookies.token;
 
-    if (!products.length) {
+    const response = await axios.get(
+      "http://localhost:3003/api/products/seller",
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
+
+    const totalProducts = response.data.products;
+
+    if (totalProducts.length === 0) {
       return res.status(200).json({
-        sales: 0,
-        revenue: 0,
-        topProducts: [],
+        totalSales: 0,
+        totalRevenue: 0,
+        totalProducts: 0,
+        topProduct: null,
+        orders: [],
         message: "No products found for this seller",
       });
     }
 
-    const productIds = products.map((p) => p._id.toString());
+    const productIds = totalProducts.map((p) => p._id.toString());
 
     // 🧾 2️⃣ Get all orders containing seller’s products
     const orders = await orderModel.find({
       "items.product": { $in: productIds },
       status: { $in: ["COMPLETED", "SHIPPED", "DELIVERED"] }, // filter successful orders
-    });
+    }).sort({ createdAt: -1 });
 
     if (!orders.length) {
       return res.status(200).json({
-        sales: 0,
-        revenue: 0,
-        topProducts: [],
+        totalSales: 0,
+        totalRevenue: 0,
+        totalProducts,
+        topProduct: null,
+        orders: [],
         message: "No orders yet for this seller",
       });
     }
@@ -77,8 +249,9 @@ async function getSellerMetrics(req, res) {
 
     // 📦 5️⃣ Send response
     return res.status(200).json({
-      sales: totalSales,
-      revenue: totalRevenue,
+      totalSales,
+      totalRevenue,
+      totalProducts,
       topProducts,
     });
   } catch (error) {
@@ -219,4 +392,9 @@ module.exports = {
   getSellerMetrics,
   getOrders,
   getProducts,
+  forwardToProductService,
+  updateProduct,
+  deleteProduct,
+  getSellerProducts,
+  getProductsById
 };

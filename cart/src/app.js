@@ -6,8 +6,6 @@ const cors = require('cors');
 const app = express();
 
 const allowedOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(",")
-  : [];
 
 app.use(cors({
   origin: allowedOrigins,
